@@ -4,8 +4,9 @@ from flask_sqlalchemy import SQLAlchemy
 import json
 
 database_name = 'trivia'
-database_path = 'postgresql://{}/{}'.format('localhost:5432', database_name)
-
+database_path = "postgresql://{}:{}@{}/{}".format(
+    "postgres", "pass", "localhost:5432", database_name
+)
 db = SQLAlchemy()
 
 """
@@ -76,3 +77,29 @@ class Category(db.Model):
             'id': self.id,
             'type': self.type
             }
+
+"""
+Category
+
+"""
+class Leaderboard(db.Model):
+    __tablename__ = 'leaderboard'
+
+    id = Column(Integer, primary_key=True)
+    player = Column(String)
+    score = Column(Integer)
+
+    def __init__(self, player, score):
+        self.player = player
+        self.score = score
+
+    def insert(self):
+        db.session.add(self)
+        db.session.commit()
+
+    def format(self):
+        return {
+            'id': self.id,
+            'player': self.player,
+            'score': self.score,
+        }
