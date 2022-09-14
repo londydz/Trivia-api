@@ -29,9 +29,9 @@ def create_app(test_config=None):
     app = Flask(__name__)
     setup_db(app)
 
-
     """
-    @TODO: Set up CORS. Allow '*' for origins. Delete the sample route after completing the TODOs
+    @TODO: Set up CORS. Allow '*' for origins.
+    Delete the sample route after completing the TODOs
     """
 
     CORS(app, resources={r"*": {"origins": "*"}})
@@ -41,7 +41,6 @@ def create_app(test_config=None):
     """
     @app.after_request
     def after_request(response):
-     
         '''
           Set Access-Control headers
         '''
@@ -83,9 +82,8 @@ def create_app(test_config=None):
                 "added": category.id,
                 "success": True
             })
-        except:
+        except BaseException:
             abort(400)
-    
 
     """
     @TODO:
@@ -96,17 +94,21 @@ def create_app(test_config=None):
 
     TEST: At this point, when you start the application
     you should see questions and categories generated,
-    ten questions per page and pagination at the bottom of the screen for three pages.
+    ten questions per page and pagination at the bottom
+     of the screen for three pages.
     Clicking on the page numbers should update the questions.
     """
     @app.route("/questions")
     def get_questions():
-        '''
-          Endpoint to get all questions with pagination.
-        '''
+        
+        # get all questions,categories and paginate
         questions = Question.query.all()
         categories = Category.query.all()
         paginated_questions = paginator(request, questions)
+
+        categories_dict = {}
+        for category in categories:
+            categories_dict[category.id] = category.type
 
         if not len(paginated_questions):
             abort(404)
@@ -116,15 +118,15 @@ def create_app(test_config=None):
             "total_questions": len(questions),
             "categories": {
                 category.id: category.type for category in categories},
-            "current_category": None
+            "current_category": categories_dict
         })
 
-    
     """
     @TODO:
     Create an endpoint to DELETE question using a question ID.
 
-    TEST: When you click the trash icon next to a question, the question will be removed.
+    TEST: When you click the trash icon next to a question,
+    the question will be removed.
     This removal will persist in the database and when you refresh the page.
     """
     @app.route("/questions/<int:question_id>", methods=["DELETE"])
@@ -142,7 +144,7 @@ def create_app(test_config=None):
                 "success": True,
                 "deleted": question.id
             })
-        except:
+        except BaseException:
             abort(422)
 
     """
@@ -152,13 +154,15 @@ def create_app(test_config=None):
     category, and difficulty score.
 
     TEST: When you submit a question on the "Add" tab,
-    the form will clear and the question will appear at the end of the last page
+    the form will clear and the question will appear
+    at the end of the last page
     of the questions list in the "List" tab.
     """
     @app.route("/questions", methods=["POST"])
     def add_question():
         '''
-          Endpoint to add a new question and to get questions based on a search term.
+          Endpoint to add a new question and to
+          get questions based on a search term.
         '''
         try:
             data = request.get_json()
@@ -193,16 +197,14 @@ def create_app(test_config=None):
                 question.insert()
 
                 return jsonify({
-    
-                "added": question.id,
+
+                    "added": question.id,
                     "success": True
                 })
 
         except Exception:
             abort(400)
 
-
-    
     """
     @TODO:
     Create a POST endpoint to get questions based on a search term.
@@ -238,13 +240,13 @@ def create_app(test_config=None):
         })
 
     """
-    
+
     @TODO:
     Create a POST endpoint to get questions to play the quiz.
     This endpoint should take category and previous question parameters
     and return a random questions within the given category,
     if provided, and that is not one of the previous questions.
-    
+
     TEST: In the "Play" tab, after a user selects "All" or a category,
     one question at a time is displayed, the user is allowed to answer
     and shown whether they were correct or not.
@@ -252,25 +254,26 @@ def create_app(test_config=None):
     @app.route("/quizzes", methods=["POST"])
     def get_question_for_quiz():
 
-      data = request.get_json()
-      try:
-        previous_questions = data["previous_questions"]
-        quiz_category = data["quiz_category"]
-      except Exception:
-        abort(400)
+        data = request.get_json()
+        try:
+            previous_questions = data["previous_questions"]
+            quiz_category = data["quiz_category"]
+        except Exception:
+            abort(400)
 
-      if quiz_category:
-        questions = Question.query.filter_by(category=quiz_category).filter(
-        Question.id.notin_(previous_questions)).all()
-      else:
-        questions = Question.query.filter(
+        if quiz_category:
+            questions = Question.query.filter_by(
+                category=quiz_category).filter(
+                Question.id.notin_(previous_questions)).all()
+        else:
+            questions = Question.query.filter(
                 ~Question.category.in_(previous_questions)).all()
 
-        question = random.choice(questions).format() if questions else None
+            question = random.choice(questions).format() if questions else None
 
-        return jsonify({
-            "question": question
-        })
+            return jsonify({
+                "question": question
+            })
 
     @app.route("/leaderboard")
     def get_leaderboard_scores():
@@ -282,25 +285,6 @@ def create_app(test_config=None):
             "results": paginated_results,
             "totalResults": len(results)
         })
-
-    @app.route("/leaderboard", methods=["POST"])
-    def post_to_leaderboard():
-        '''
-          Endpoint to add a new category.
-        '''
-        try:
-            player = request.get_json()["player"]
-            score = int(request.get_json()["score"])
-
-            board_item = Leaderboard(player=player, score=score)
-            board_item.insert()
-
-            return jsonify({
-                "added": board_item.id,
-                "success": True
-            })
-        except:
-            abort(400)
 
     """
     @TODO:
@@ -324,7 +308,7 @@ def create_app(test_config=None):
                 "added": board_item.id,
                 "success": True
             })
-        except:
+        except BaseException:
             abort(400)
 
     '''
@@ -360,4 +344,3 @@ def create_app(test_config=None):
         })
 
     return app
-

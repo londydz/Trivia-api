@@ -2,7 +2,6 @@ import os
 import unittest
 import json
 from flask_sqlalchemy import SQLAlchemy
-
 from flaskr import create_app
 from models import setup_db, Question, Category, Leaderboard
 
@@ -32,7 +31,8 @@ class TriviaTestCase(unittest.TestCase):
 
     """
     TODO
-    Write at least one test for each test for successful operation and for expected errors.
+    Write at least one test for each test for
+    successful operation and for expected errors.
     """
 
     def test_get_categories_success(self):

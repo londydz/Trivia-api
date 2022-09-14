@@ -43,7 +43,8 @@ From within the `./src` directory first ensure you are working using your create
 To run the server, execute:
 
 ```bash
-flask run --reload
+
+
 ```
 
 The `--reload` flag will detect file changes and restart the server automatically.
@@ -90,6 +91,178 @@ You will need to provide detailed documentation of your API endpoints including 
 }
 ```
 
+POST /categories
+
+This adds a category to the collection of categories in the database. It takes in category type it takes no query parameter
+
+type: string (required) - Category type
+
+{"type": "Entertainment"}
+
+Sample Request
+
+curl http://localhost:5000/categories -X POST -H "{Content-Type: 'application/json'}" -d '{"type": "Entertainment"}'
+Sample Response
+
+added: int - Id of the added category.
+success: boolean - Request success status.
+
+{
+"added": 1,
+"success": True
+}
+
+GET /categories/{category_id}/questions
+
+Fetches a dictionary of questions for the specified category
+
+{
+"questions": [
+{
+"answer": "Alexander Fleming",
+"category": 1,
+"difficulty": 4,
+"id": 10,
+"question": Who discovered penicillin?"
+},
+{
+"answer": "Uruguay",
+"category": 6,
+"difficulty": 4,
+"id": 11,
+"question": "Which country won the first ever soccer World Cup in 1930?"
+}
+],
+"totalQuestions": 2
+}
+
+Questions
+GET /questions
+
+This returns a paginated list of all questions within the database. Each page contains a maximum of 10 questions.
+
+{
+"questions": [
+{
+"answer": "Brazil",
+"category": 6,
+"difficulty": 3,
+"id": 10,
+"question": "Which is the only team to play in every soccer World Cup tournament?"
+}, {
+"answer": "Uruguay",
+"category": 6,
+"difficulty": 4,
+"id": 11,
+"question": "Which country won the first ever soccer World Cup in 1930?"
+}
+],
+"categories" : {
+"1": "Science",
+"2", "Art",
+"3": "History"
+},
+"totalQuestions": 2
+}
+
+POST /questions
+
+This adds a question to the collection of questions in the database.
+
+{
+"question": "Which country won the first ever soccer World Cup in 1930?",
+"answer": "Uruguay",
+"category": 6,
+"difficulty": 4
+}
+
+POST /questions (SEARCH)
+
+This performs a case insensitive search of questions from the database based on a search term. It returns an array of the questions and the total amount of questions that match the search term.
+
+{ "searchTerm": "soccer"}
+Request
+
+Response
+
+{
+"questions": [
+{
+"answer": "Brazil",
+"category": 6,
+"difficulty": 3,
+"id": 10,
+"question": "Which is the only team to play in every soccer World Cup tournament?"
+},
+{
+"answer": "Uruguay",
+"category": 6,
+"difficulty": 4,
+"id": 11,
+"question": "Which country won the first ever soccer World Cup in 1930?"
+}
+],
+"totalQuestions": 2
+}
+
+DELETE /questions/{question_id}
+
+This deletes the question with the specified id. It returns the id of the deleted question and a success status.
+
+{
+"deleted": 1,
+"success": True
+}
+
+Quizzes
+POST /quizzes
+
+This returns a random question from the database within a specified category or from a random category if none is specified. It accepts an array of previous questions to ensure that a question that has been chosen before is not chosen again.
+
+{
+"previous_questions": [10],
+"quiz_category": 6
+}
+
+{
+"question": {
+"answer": "Uruguay",
+"category": 6,
+"difficulty": 4,
+"id": 11,
+"question": "Which country won the first ever soccer World Cup in 1930?"
+},
+}
+
+Leaderboard
+GET /leaderboard
+
+This returns a paginated list of all players and their scores in the database. Each page contains a maximum of 10 results.
+
+{
+"results": [
+{
+"id": 1,
+"player": "Londy",
+"score": 5,
+}, {
+"id": 10,
+"player": "Mbuso",
+"score": 4,
+}
+],
+"totalResults": 2
+}
+
+POST /leaderboard
+
+This adds a player's name and score to the database.
+
+{
+"player": "Londy",
+"score": 4
+}
+
 ## Testing
 
 Write at least one test for the success and at least one error behavior of each endpoint using the unittest library.
@@ -102,3 +275,21 @@ createdb trivia_test
 psql trivia_test < trivia.psql
 python test_flaskr.py
 ```
+
+Errors re returned as JSON in the following format:
+{
+"error": 404,
+"message": "The requested resource was not found."
+}
+
+Response Keys
+
+error - Status code of the error that occurred.
+message - Accompanying error message.
+
+Status Codes
+
+400 (Bad request) - Your request was not properly formatted.
+404 (Not found) - The requested resource was not found.
+422 (Unprocessable) - The server understood your request but it could not be processed.
+500 (Internal server error) - Something went wrong on the server.

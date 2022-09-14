@@ -1,18 +1,32 @@
 import os
+from pathlib import Path
 from sqlalchemy import Column, String, Integer, create_engine
 from flask_sqlalchemy import SQLAlchemy
 import json
+from dotenv import load_dotenv
 
-database_name = 'trivia'
-database_path = "postgresql://{}:{}@{}/{}".format(
-    "postgres", "pass", "localhost:5432", database_name
-)
+load_dotenv()
+env_path = Path('.')/'.env'
+load_dotenv(dotenv_path=env_path)
+database_name = os.getenv["DB_NAME "]
+path = os.path.dotenv(os.path.dotenv(".env"))
+database_user = os.getenv["DB_USER"]
+password = os.getenv["DB_PASSWORD "]
+
+database_path = os.getenv["DB_PATH"]
+
+#database_name = 'trivia'
+# database_path = "postgresql://{}:{}@{}/{}".format(
+#   "postgres", "pass", "localhost:5432", database_name
+# )
 db = SQLAlchemy()
 
 """
 setup_db(app)
     binds a flask application and a SQLAlchemy service
 """
+
+
 def setup_db(app, database_path=database_path):
     app.config["SQLALCHEMY_DATABASE_URI"] = database_path
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -20,10 +34,13 @@ def setup_db(app, database_path=database_path):
     db.init_app(app)
     db.create_all()
 
+
 """
 Question
 
 """
+
+
 class Question(db.Model):
     __tablename__ = 'questions'
 
@@ -57,12 +74,15 @@ class Question(db.Model):
             'answer': self.answer,
             'category': self.category,
             'difficulty': self.difficulty
-            }
+        }
+
 
 """
 Category
 
 """
+
+
 class Category(db.Model):
     __tablename__ = 'categories'
 
@@ -76,12 +96,15 @@ class Category(db.Model):
         return {
             'id': self.id,
             'type': self.type
-            }
+        }
+
 
 """
 Category
 
 """
+
+
 class Leaderboard(db.Model):
     __tablename__ = 'leaderboard'
 
