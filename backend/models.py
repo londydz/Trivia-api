@@ -3,22 +3,15 @@ from pathlib import Path
 from sqlalchemy import Column, String, Integer, create_engine
 from flask_sqlalchemy import SQLAlchemy
 import json
-from dotenv import load_dotenv
+from setting import DB_NAME, DB_USER, DB_PASSWORD
 
-load_dotenv()
-env_path = Path('.')/'.env'
-load_dotenv(dotenv_path=env_path)
-database_name = os.getenv["DB_NAME "]
-path = os.path.dotenv(os.path.dotenv(".env"))
-database_user = os.getenv["DB_USER"]
-password = os.getenv["DB_PASSWORD "]
+database_name = DB_NAME
+password = DB_PASSWORD
+user = DB_USER
 
-database_path = os.getenv["DB_PATH"]
-
-#database_name = 'trivia'
-# database_path = "postgresql://{}:{}@{}/{}".format(
-#   "postgres", "pass", "localhost:5432", database_name
-# )
+database_path = "postgresql://{}:{}@{}/{}".format(
+    'user', 'password', 'localhost:5432', database_name
+)
 db = SQLAlchemy()
 
 """

@@ -18,6 +18,13 @@ class TriviaTestCase(unittest.TestCase):
             'localhost:5432', self.database_name)
         setup_db(self.app, self.database_path)
 
+        self.new_question ={
+            'question:' 'What is the heaviest organ in the human body?'
+            'answer: ' 'The Liver'
+            'difficulty:' '4'
+            'category:' '1'
+        }
+
         # binds the app to the current context
         with self.app.app_context():
             self.db = SQLAlchemy()
