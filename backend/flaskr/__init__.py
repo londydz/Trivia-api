@@ -1,4 +1,7 @@
+from dataclasses import dataclass
+from functools import total_ordering
 import os
+from select import select
 import sys
 from flask import Flask, request, abort, jsonify
 from flask_sqlalchemy import SQLAlchemy
@@ -15,7 +18,7 @@ def standalone_print(item):
     print("\n\n", item, "\n\n")
 
 
-def paginator(request, data):
+def paginate_questions(request, data):
     page = request.args.get("page", 1, type=int)
     start = (page - 1) * QUESTIONS_PER_PAGE
     end = start + QUESTIONS_PER_PAGE
@@ -42,58 +45,54 @@ def create_app(test_config=None):
                              "GET, POST, PATCH, DELETE, OPTIONS")
 
         return response
-    
+
     @app.route("/categories")
     def get_categories():
-        '''
-          Endpoint to get all available categories.
-        '''
-        categories = Category.query.all()
-        formatted_categories = {
-            category.id: category.type for category in categories}
 
-        return jsonify({
-            "categories": formatted_categories
-        })
+        selection = Category.query.all()
+        current_categories = {
+            category.id: category.type for category in selection}
+
+        return jsonify(
+            {
+                "success": True,
+                "categories": current_categories
+            }
+        )
 
     @app.route("/categories", methods=["POST"])
     def add_category():
-        '''
-          Endpoint to add a new category.
-        '''
+
         try:
             type = request.get_json()["type"]
             category = Category(type=type)
             category.insert()
 
             return jsonify({
-                "added": category.id,
-                "success": True
+                "success": True,
+                "created": category.id,
+
             })
-        except BaseException:
+        except:
             abort(400)
 
     @app.route("/questions")
     def get_questions():
 
-        # get all questions,categories and paginate
-        questions = Question.query.all()
-        categories = Category.query.all()
-        paginated_questions = paginator(request, questions)
+        selection = Question.query.order_by(Question.id).all()
+        current_questions = paginate_questions(request, selection)
 
-        categories_dict = {}
-        for category in categories:
-            categories_dict[category.id] = category.type
+        categories = Category.query.order_by(Category.type).all()
 
-        if not len(paginated_questions):
+        if len(current_questions) == 0:
             abort(404)
 
         return jsonify({
-            "questions": paginated_questions,
-            "total_questions": len(questions),
-            "categories": {
-                category.id: category.type for category in categories},
-            "current_category": categories_dict
+            'success': True,
+            'questions': current_questions,
+            'total_questions': len(selection),
+            'categories': {category.id: category.type for category in categories},
+            'current_category': None
         })
 
     @app.route("/questions/<int:question_id>", methods=["DELETE"])
@@ -101,47 +100,60 @@ def create_app(test_config=None):
         '''
           Endpoint to DELETE question using a question ID.
         '''
-        question = Question.query.get(question_id)
-        if not question:
-            abort(404)
+        question = Question.query.filter(
+        Question.id == question_id).one_or_none()
+        if question:
 
-        try:
-            question.delete()
-            return jsonify({
-                "success": True,
-                "deleted": question.id
-            })
-        except BaseException:
-            abort(422)
+            try:
+                question.delete()
+                questions = Question.query.order_by(Question.id).all()
+                current_quizzes = paginate_questions(request, questions)
+
+                data = Category.query.order_by(Category.id).all()
+                categories = {}
+                for category in data:
+                    categories[category.id] = category.type
+
+                return jsonify({
+                    'success': True,
+                    'questions': current_quizzes,
+                    'total_questions': Question.query.count(),
+                    'categories': categories,
+                    'current_category': None
+                })
+
+            except BaseException:
+             abort(422)
 
     @app.route("/questions", methods=["POST"])
     def add_question():
-        '''
-          Endpoint to add a new question and to
-          get questions based on a search term.
-        '''
+
+        body = request.get_json()
+
+        question = body.get('Question', None)
+        answer = body.get('answer', None)
+        category = body.get('category', None)
+        difficulty = body.get('difficulty', None)
+        searchTerm = body.get('searchTerm', None)
+
         try:
-            data = request.get_json()
 
-            searchTerm = data.get("searchTerm", None)
-
-            if searchTerm is not None:
-                questions = Question.query.filter(
-                    Question.question.ilike("%{}%".format(searchTerm))
-                ).all()
-                formatted_questions = [question.format()
-                                       for question in questions]
+            if searchTerm:
+                questions = Question.query.order_by(Question.id).filter(
+                    Question.question.ilike('%{}%'.format(searchTerm)))
+                current_questions = paginate_questions(request, questions)
 
                 return jsonify({
-                    "questions": formatted_questions,
-                    "totalQuestions": len(questions),
-                    "currentCategory": None
+                    'success': True,
+                    'questions': current_questions,
+                    'total_questions': len(questions.all()),
+                    'current_category': None
                 })
             else:
-                question = data["question"]
-                answer = data["answer"]
-                difficulty = int(data["difficulty"])
-                category = int(data["category"])
+                question = body["question"]
+                answer = body["answer"]
+                difficulty = int(body["difficulty"])
+                category = int(body["category"])
 
                 question = Question(
                     question=question,
@@ -153,9 +165,9 @@ def create_app(test_config=None):
                 question.insert()
 
                 return jsonify({
-
+                    "success": True,
                     "added": question.id,
-                    "success": True
+
                 })
 
         except Exception:
@@ -167,50 +179,56 @@ def create_app(test_config=None):
           Endpoint to get questions based on category.
         '''
         questions = Question.query.filter_by(category=category_id).all()
-        formatted_questions = [question.format() for question in questions]
+        current_questions = paginate_questions(request, questions)
 
         return jsonify({
-            "questions": formatted_questions,
-            "totalQuestions": len(questions),
-            "currentCategory": None
+            "success": True,
+            "questions": current_questions,
+            "total_Questions": len(current_questions),
+            "current_Category": None,
         })
 
     @app.route("/quizzes", methods=["POST"])
     def get_question_for_quiz():
 
-        data = request.get_json()
         try:
-            previous_questions = data["previous_questions"]
-            quiz_category = data["quiz_category"]
-        except Exception:
-            abort(400)
 
-        if quiz_category:
-            questions = Question.query.filter_by(
-                category=quiz_category).filter(
-                Question.id.notin_(previous_questions)).all()
-        else:
-            questions = Question.query.filter(
-                ~Question.category.in_(previous_questions)).all()
+            body = request.get_json()
 
-            question = random.choice(questions).format() if questions else None
+            if not ('quiz_category' in body and 'previous_questions' in body):
+                abort(422)
+
+            category = body.get('quiz_category')
+            previous_questions = body.get('previous_questions')
+
+            if category['type'] == 'click':
+                available_questions = Question.query.filter(
+                    Question.id.notin_((previous_questions))).all()
+            else:
+                available_questions = Question.query.filter_by(
+                    category=category['id']).filter(Question.id.notin_((previous_questions))).all()
+
+            new_question = available_questions[random.randrange(
+                0, len(available_questions))].format() if len(available_questions) > 0 else None
 
             return jsonify({
-                "question": question
+                'success': True,
+                'question': new_question
             })
+        except:
+            abort(422)
+
 
     @app.route("/leaderboard")
     def get_leaderboard_scores():
-        ''' Endpoint to get leaderboard scores '''
 
-        results = Leaderboard.query.order_by(desc(Leaderboard.score)).all()
-        paginated_results = paginator(request, results)
+        scores = Leaderboard.query.order_by(desc(Leaderboard.score)).all()
+        paginated_results = paginate_questions(request, scores)
         return jsonify({
             "results": paginated_results,
-            "totalResults": len(results)
+            "total_Results": len(scores)
         })
 
-   
     @app.route("/leaderboard", methods=["POST"])
     def post_to_leaderboard():
         '''
@@ -220,11 +238,11 @@ def create_app(test_config=None):
             player = request.get_json()["player"]
             score = int(request.get_json()["score"])
 
-            board_item = Leaderboard(player=player, score=score)
-            board_item.insert()
+            item = Leaderboard(player=player, score=score)
+            item.insert()
 
             return jsonify({
-                "added": board_item.id,
+                "added": item.id,
                 "success": True
             })
         except BaseException:
@@ -236,30 +254,41 @@ def create_app(test_config=None):
 
     @app.errorhandler(404)
     def not_found(error):
-        return jsonify({
-            "error": 404,
-            "message": "The requested resource was not found."
-        }), 404
+        return (
+            jsonify({"success": False, "error": 404,
+                    "message": "resource not found"}),
+            404,
+        )
 
     @app.errorhandler(422)
     def unprocessable(error):
-        return jsonify({
-            "error": 422,
-            "message": "Your request was unprocessable."
-        }), 404
+        return (
+            jsonify({"success": False, "error": 422,
+                    "message": "unprocessable"}),
+            422,
+        )
 
     @app.errorhandler(400)
     def bad_request(error):
         return jsonify({
+            "success": False,
             "error": 400,
-            "message": "Bad request."
-        }), 400
+            "message": "bad request"}),
+
+    @app.errorhandler(405)
+    def not_found(error):
+        return (
+            jsonify({"success": False, "error": 405,
+                    "message": "method not allowed"}),
+            405,
+        )
 
     @app.errorhandler(500)
     def internal_server_error(error):
-        return jsonify({
-            "error": 500,
-            "message": "Internal server error."
-        })
+        return jsonify(
+            jsonify({"success": False, "error": 500,
+                    "message": "internal server error"}),
+            500,
+        )
 
     return app

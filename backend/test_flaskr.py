@@ -37,18 +37,18 @@ class TriviaTestCase(unittest.TestCase):
         """Executed after reach test"""
         pass
 
+    def test_get_paginated_questios(self):
+        res = self.client().get('/questions')
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data['success'], True)
+        self.assertTrue(data['categories'])
+        self.assertTrue(len(data['questions']))
+
     def test_get_categories_success(self):
         res = self.client().get("/categories")
         self.assertEqual(res.status_code, 200)
-
-    # def test_add_category_success(self):
-        #res = self.client().get("/categories", json={self.cteg})
-        #data = json.loads(res.data)
-
-        #self.assertEqual(res.status_code, 200)
-        #self.assertEqual(data["success"], True)
-        # self.assertTrue(data["added"])
-        # self.assertTrue(len(data["category"]))
 
     def test_add_category_bad_request(self):
         res = self.client().post("/categories", json={})
@@ -77,7 +77,7 @@ class TriviaTestCase(unittest.TestCase):
 
         self.assertEqual(res.status_code, 200)
         self.assertTrue(len(data["questions"]))
-        self.assertTrue(data["totalQuestions"])
+        self.assertTrue(data["total_questions"])
 
     def test_search_questions_empty_string(self):
         res = self.client().post("/questions", json={"searchTerm": ""})
@@ -88,12 +88,12 @@ class TriviaTestCase(unittest.TestCase):
         self.assertTrue(data["totalQuestions"])
 
     def test_search_questions_not_found(self):
-        res = self.client().post("/questions", json={"searchTerm": "abcdxyz"})
+        res = self.client().post("/questions", json={"searchTerm": "noooow"})
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
         self.assertFalse(len(data["questions"]))
-        self.assertFalse(data["totalQuestions"])
+        self.assertFalse(data["total_questions"])
 
     def test_get_questions_in_category_success(self):
         res = self.client().get("/categories/2/questions")
@@ -115,6 +115,16 @@ class TriviaTestCase(unittest.TestCase):
         data = json.loads(res.data)
 
         self.assertEqual(res.status_code, 200)
+
+    def get_question_for_quiz(self):
+        new_quiz_round = {'previous_questions': [],
+                          'quiz_category': {'type': 'Entertainment', 'id': 5}}
+
+        res = self.client().post('/quizzes', json=new_quiz_round)
+        data = json.loads(res.data)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(data['success'], True)
 
     def test_post_to_leaderboard_success(self):
         res = self.client().post("/leaderboard", json={
