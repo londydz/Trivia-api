@@ -73,7 +73,7 @@ def create_app(test_config=None):
                 "created": category.id,
 
             })
-        except:
+        except BaseException:
             abort(400)
 
     @app.route("/questions")
@@ -101,7 +101,7 @@ def create_app(test_config=None):
           Endpoint to DELETE question using a question ID.
         '''
         question = Question.query.filter(
-        Question.id == question_id).one_or_none()
+            Question.id == question_id).one_or_none()
         if question:
 
             try:
@@ -123,7 +123,7 @@ def create_app(test_config=None):
                 })
 
             except BaseException:
-             abort(422)
+                abort(422)
 
     @app.route("/questions", methods=["POST"])
     def add_question():
@@ -206,18 +206,20 @@ def create_app(test_config=None):
                     Question.id.notin_((previous_questions))).all()
             else:
                 available_questions = Question.query.filter_by(
-                    category=category['id']).filter(Question.id.notin_((previous_questions))).all()
+                    category=category['id']).filter(
+                    Question.id.notin_(
+                        (previous_questions))).all()
 
             new_question = available_questions[random.randrange(
-                0, len(available_questions))].format() if len(available_questions) > 0 else None
+                0, len(available_questions))].format() if len(
+                    available_questions) > 0 else None
 
             return jsonify({
                 'success': True,
                 'question': new_question
             })
-        except:
+        except BaseException:
             abort(422)
-
 
     @app.route("/leaderboard")
     def get_leaderboard_scores():
