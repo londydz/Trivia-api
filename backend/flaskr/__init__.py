@@ -13,11 +13,6 @@ from models import setup_db, Question, Category, Leaderboard
 
 QUESTIONS_PER_PAGE = 10
 
-
-def standalone_print(item):
-    print("\n\n", item, "\n\n")
-
-
 def paginate_questions(request, data):
     page = request.args.get("page", 1, type=int)
     start = (page - 1) * QUESTIONS_PER_PAGE
@@ -47,56 +42,69 @@ def create_app(test_config=None):
         return response
 
     @app.route("/categories")
-    def get_categories():
+    def display_all_categories():
 
-        selection = Category.query.all()
-        current_categories = {
-            category.id: category.type for category in selection}
+        categories = Category.query.order_by(Category.type).all()
+        category_display = {
+            category.id: category.type for category in categories
+        }
+
+        if len(category_display) == 0:
+           abort(404)
 
         return jsonify(
             {
                 "success": True,
-                "categories": current_categories
+                "categories": category_display,
+                "total categories": len(categories),
             }
         )
 
     @app.route("/categories", methods=["POST"])
-    def add_category():
+    def create_new_category():
+        #body = request.get_json()
+
+        type = request.get_json()["type"]
 
         try:
-            type = request.get_json()["type"]
             category = Category(type=type)
             category.insert()
 
+            selection = Category.query.all()
+            current_categories = paginate_questions(request, selection)
+
             return jsonify({
                 "success": True,
-                "created": category.id,
-
+                "added": category.id,
+                # "categories ": current_categories,
+                # "total_categoryies": len(Category.query.all()),
             })
         except BaseException:
-            abort(400)
+            abort(404)
 
     @app.route("/questions")
-    def get_questions():
+    def display_all_questions():
 
-        selection = Question.query.order_by(Question.id).all()
-        current_questions = paginate_questions(request, selection)
+        questions = Question.query.all()
+        question_display = paginate_questions(request, questions)
 
-        categories = Category.query.order_by(Category.type).all()
-
-        if len(current_questions) == 0:
+        categories = Category.query.all()
+        category_display = {}
+        for category in categories:
+            category_display [category.id] = [category.type]
+        
+        if len(question_display) == 0:
             abort(404)
 
         return jsonify({
             'success': True,
-            'questions': current_questions,
-            'total_questions': len(selection),
-            'categories': {category.id: category.type for category in categories},
-            'current_category': None
+            'questions': question_display,
+            'total_questions': len(questions),
+            'categories': category_display,
         })
 
     @app.route("/questions/<int:question_id>", methods=["DELETE"])
-    def delete_question(question_id):
+    def delete_question_by_question_id(question_id):
         '''
           Endpoint to DELETE question using a question ID.
         '''
@@ -126,70 +134,76 @@ def create_app(test_config=None):
                 abort(422)
 
     @app.route("/questions", methods=["POST"])
-    def add_question():
+    def create_new_question():
 
-        body = request.get_json()
+        data = request.get_json()
+        new_question = data.get('question')
+        new_answer = data.get('answer')
+        new_difficulty = data.get('difficulty')
+        new_category = data.get('category')
 
-        question = body.get('Question', None)
-        answer = body.get('answer', None)
-        category = body.get('category', None)
-        difficulty = body.get('difficulty', None)
-        searchTerm = body.get('searchTerm', None)
+        if ((new_question is None) or (new_answer is None)
+                or (new_difficulty is None) or (new_category is None)):
+            abort(422)
 
         try:
+            question = Question(
+                question=new_question,
+                answer=new_answer,
+                difficulty=new_difficulty,
+                category=new_category)
+            question.insert()
 
-            if searchTerm:
-                questions = Question.query.order_by(Question.id).filter(
-                    Question.question.ilike('%{}%'.format(searchTerm)))
-                current_questions = paginate_questions(request, questions)
+            selection = Question.query.order_by(Question.id).all()
+            current_questions = paginate_questions(request, selection)
 
-                return jsonify({
-                    'success': True,
-                    'questions': current_questions,
-                    'total_questions': len(questions.all()),
-                    'current_category': None
-                })
-            else:
-                question = body["question"]
-                answer = body["answer"]
-                difficulty = int(body["difficulty"])
-                category = int(body["category"])
-
-                question = Question(
-                    question=question,
-                    answer=answer,
-                    difficulty=difficulty,
-                    category=category,
-                )
-
-                question.insert()
-
-                return jsonify({
-                    "success": True,
-                    "added": question.id,
-
-                })
+            return jsonify({
+                'success': True,
+                'created': question.id,
+                'question_created': question.question,
+                'questions': current_questions,
+                'total_questions': len(Question.query.all())
+            })
 
         except Exception:
-            abort(400)
+            abort(422)
+
+    @app.route('/questions/search', methods=['POST'])
+    def search_for_any_question():
+        data = request.get_json()
+        search_term = data.get('searchTerm', None)
+
+        if search_term:
+            results = Question.query.filter(
+                Question.question.ilike(f'%{search_term}%')).all()
+
+            return jsonify({
+                'success': True,
+                'questions': [question.format() for question in results],
+                'total_questions': len(results),
+                'current_category': None
+            })
 
     @app.route("/categories/<int:category_id>/questions")
-    def get_questions_in_category(category_id):
-        '''
-          Endpoint to get questions based on category.
-        '''
-        questions = Question.query.filter_by(category=category_id).all()
-        current_questions = paginate_questions(request, questions)
+    def display_questions_category(category_id):
 
-        return jsonify({
-            "success": True,
-            "questions": current_questions,
-            "total_Questions": len(current_questions),
-            "current_Category": None,
-        })
+        question = Question.query.all()
+        #display_questions = paginate_questions(request, question)
 
+        try:
+            questions = Question.query.filter(
+                Question.category == str(category_id)).all()
+
+            return jsonify({
+                'success': True,
+                'questions': [question.format() for question in questions],
+                'total_questions': len(questions),
+                'current_category': category_id
+            })
+        except:
+            abort(404)
     @app.route("/quizzes", methods=["POST"])
-    def get_question_for_quiz():
+    def display_question_for_quiz():
 
         try:
 
@@ -221,75 +235,46 @@ def create_app(test_config=None):
         except BaseException:
             abort(422)
 
-    @app.route("/leaderboard")
-    def get_leaderboard_scores():
-
-        scores = Leaderboard.query.order_by(desc(Leaderboard.score)).all()
-        paginated_results = paginate_questions(request, scores)
-        return jsonify({
-            "results": paginated_results,
-            "total_Results": len(scores)
-        })
-
-    @app.route("/leaderboard", methods=["POST"])
-    def post_to_leaderboard():
-        '''
-          Endpoint to add a new category.
-        '''
-        try:
-            player = request.get_json()["player"]
-            score = int(request.get_json()["score"])
-
-            item = Leaderboard(player=player, score=score)
-            item.insert()
-
-            return jsonify({
-                "added": item.id,
-                "success": True
-            })
-        except BaseException:
-            abort(400)
-
     '''
       Error handlers for all expected errors
     '''
-
-    @app.errorhandler(404)
-    def not_found(error):
-        return (
-            jsonify({"success": False, "error": 404,
-                    "message": "resource not found"}),
-            404,
-        )
-
-    @app.errorhandler(422)
-    def unprocessable(error):
-        return (
-            jsonify({"success": False, "error": 422,
-                    "message": "unprocessable"}),
-            422,
-        )
 
     @app.errorhandler(400)
     def bad_request(error):
         return jsonify({
             "success": False,
             "error": 400,
-            "message": "bad request"}),
+            "message": "Bad Request"}),
+            
+    @app.errorhandler(404)
+    def not_found(error):
+        return (
+            jsonify({"success": False, "error": 404,
+                    "message": "Resource Not Found"}),
+            404,
+        )
 
     @app.errorhandler(405)
     def not_found(error):
         return (
             jsonify({"success": False, "error": 405,
-                    "message": "method not allowed"}),
+                    "message": "Method Not Allowed"}),
             405,
+        )
+
+    @app.errorhandler(422)
+    def unprocessable(error):
+        return (
+            jsonify({"success": False, "error": 422,
+                    "message": "Unprocessable"}),
+            422,
         )
 
     @app.errorhandler(500)
     def internal_server_error(error):
         return jsonify(
             jsonify({"success": False, "error": 500,
-                    "message": "internal server error"}),
+                    "message": "Internal Server Error"}),
             500,
         )
 
