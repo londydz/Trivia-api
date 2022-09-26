@@ -19,7 +19,6 @@ class TriviaTestCase(unittest.TestCase):
             'localhost:5432', self.database_name)
         setup_db(self.app, self.database_path)
 
-
         # binds the app to the current context
         with self.app.app_context():
             self.db = SQLAlchemy()
@@ -97,7 +96,6 @@ class TriviaTestCase(unittest.TestCase):
         self.assertEqual(data["success"], False)
         self.assertEqual(data["message"], "Resource Not Found")
 
-     
 
 # Make the tests conveniently executable
 if __name__ == "__main__":

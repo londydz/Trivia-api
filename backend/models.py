@@ -8,13 +8,9 @@ database_name = DB_NAME
 password = DB_PASSWORD
 user = DB_USER
 
-
-#database_path = "postgresql+psycopg2://{}:{}@{}/{}".format(
-#    'user', 'password', 'localhost:5432', database_name
-# )
-database_name = 'trivia'
+database_name = 'DB_NAME'
 database_path = "postgresql+psycopg2://{}:{}@{}/{}".format(
-    'postgres', 'pass', 'localhost:5432', database_name
+   'user', 'password', 'localhost:5432', database_name
  )
 
 db = SQLAlchemy()

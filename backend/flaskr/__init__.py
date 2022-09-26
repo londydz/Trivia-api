@@ -8,7 +8,6 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 import random
 from sqlalchemy import desc
-
 from models import setup_db, Question, Category, Leaderboard
 
 QUESTIONS_PER_PAGE = 10
@@ -20,7 +19,6 @@ def paginate_questions(request, data):
     formatted_data = [item.format() for item in data]
 
     return formatted_data[start: end]
-
 
 def create_app(test_config=None):
     # create and configure the app
@@ -50,7 +48,7 @@ def create_app(test_config=None):
         }
 
         if len(category_display) == 0:
-           abort(404)
+            abort(404)
 
         return jsonify(
             {
@@ -62,7 +60,6 @@ def create_app(test_config=None):
 
     @app.route("/categories", methods=["POST"])
     def create_new_category():
-        #body = request.get_json()
 
         type = request.get_json()["type"]
 
@@ -76,8 +73,7 @@ def create_app(test_config=None):
             return jsonify({
                 "success": True,
                 "added": category.id,
-                # "categories ": current_categories,
-                # "total_categoryies": len(Category.query.all()),
+
             })
         except BaseException:
             abort(404)
@@ -91,8 +87,8 @@ def create_app(test_config=None):
         categories = Category.query.all()
         category_display = {}
         for category in categories:
-            category_display [category.id] = [category.type]
-        
+            category_display[category.id] = [category.type]
+
         if len(question_display) == 0:
             abort(404)
 
@@ -188,7 +184,6 @@ def create_app(test_config=None):
     def display_questions_category(category_id):
 
         question = Question.query.all()
-        #display_questions = paginate_questions(request, question)
 
         try:
             questions = Question.query.filter(
@@ -200,8 +195,9 @@ def create_app(test_config=None):
                 'total_questions': len(questions),
                 'current_category': category_id
             })
-        except:
+        except BaseException:
             abort(404)
+
     @app.route("/quizzes", methods=["POST"])
     def display_question_for_quiz():
 
@@ -245,7 +241,7 @@ def create_app(test_config=None):
             "success": False,
             "error": 400,
             "message": "Bad Request"}),
-            
+
     @app.errorhandler(404)
     def not_found(error):
         return (
